@@ -53,4 +53,3 @@ def download_data():
             cursor.close()
             conn.close()
 
-download_data()
