@@ -4,9 +4,12 @@ import requests
 import tkinter as tk
 from ttkthemes import ThemedTk
 from tkinter import ttk
-import datasource
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from PIL import Image, ImageTk
+import outsources
+import datasource
+import mplfinance
+
 
 class Window(ThemedTk):
     def __init__(self,*args,**kwargs):
@@ -35,31 +38,32 @@ class Window(ThemedTk):
 
         
         #===========leftFrame=============
-        leftFrame = ttk.Frame(self)
+        self.leftFrame = ttk.Frame(self)
 
                 #==TOPFRAME=====
-        topFrame = ttk.Frame(leftFrame)
-        ttk.Label(topFrame,text='台積電股票預測',style='TopFrame.TLabel',borderwidth=2,relief='groove').pack(pady=10)
-        ttk.Button(topFrame,text='refresh').pack(anchor='e',pady=5)
-        ttk.Label(topFrame,text=' 起始數據: 2020-01-01',style='TopFrame.TLabel',borderwidth=2,relief='groove').pack(ipadx=5,pady=10)
-        topFrame.pack(fill='x')
+        self.topFrame = ttk.Frame(self.leftFrame)
+        ttk.Label(self.topFrame,text='台積電股票預測',style='TopFrame.TLabel',borderwidth=2,relief='groove').pack(pady=10)
+        icon_button = outsources.ImageButton(self.topFrame,command=lambda: datasource.download_data)
+        icon_button.pack(pady=7,side='right',padx=5)
+        ttk.Label(self.topFrame,text=' 起始數據: 2020-01-01',style='TopFrame.TLabel',borderwidth=2,relief='groove').pack(ipadx=5,pady=10)
+        self.topFrame.pack(fill='x')
                 #==TOPFRAME END=====
            #=== 分析方法===
-        analysisFrame = ttk.Frame(leftFrame)
-        linear_btn = ttk.Button(analysisFrame,text='線性回歸分析',style='All.TButton')
-        linear_btn.grid(row=0,column=0,padx=5,pady=5)
-        linear_btn = ttk.Button(analysisFrame,text='RSI',style='All.TButton')
-        linear_btn.grid(row=0,column=1,padx=5,pady=5)
-        linear_btn = ttk.Button(analysisFrame,text='MACD',style='All.TButton')
-        linear_btn.grid(row=1,column=0,padx=5,pady=5)
-        linear_btn = ttk.Button(analysisFrame,text='MA',style='All.TButton')
-        linear_btn.grid(row=1,column=1,padx=5,pady=5)
+        analysisFrame = ttk.Frame(self.leftFrame)
+        self.linear_btn = ttk.Button(analysisFrame,text='線性回歸分析',style='All.TButton',command=datasource.linear_regression)
+        self.linear_btn.grid(row=0,column=0,padx=5,pady=5)
+        self.linear_btn = ttk.Button(analysisFrame,text='RSI',style='All.TButton')
+        self.linear_btn.grid(row=0,column=1,padx=5,pady=5)
+        self.linear_btn = ttk.Button(analysisFrame,text='MACD',style='All.TButton')
+        self.linear_btn.grid(row=1,column=0,padx=5,pady=5)
+        self.linear_btn = ttk.Button(analysisFrame,text='MA',style='All.TButton')
+        self.linear_btn.grid(row=1,column=1,padx=5,pady=5)
 
         analysisFrame.pack(fill='x',pady=10)
 
            #=== 分析方法end===
             #===預測分析=====
-        resultFrame = ttk.Frame(leftFrame)
+        resultFrame = ttk.Frame(self.leftFrame)
         ttk.Label(resultFrame,text='預測分析',borderwidth=2,relief='groove',style='TopFrame.TLabel').grid()
         ttk.Label(resultFrame,text='明日股價',borderwidth=2,relief='groove',style='TopFrame.TLabel').grid(row=0,column=0,padx=5,pady=5)
         result_entry = ttk.Entry(resultFrame)
@@ -71,15 +75,12 @@ class Window(ThemedTk):
            
 
 
-        leftFrame.pack(side='left',fill='y',padx=10,pady=10)
+        self.leftFrame.pack(side='left',fill='y',padx=10,pady=10)
 
 
         #=========leftFrame END===========
 
 
-        #=========bottomFrame ===========
-       
-        #=========bottomFrame END===========
 
 
 
