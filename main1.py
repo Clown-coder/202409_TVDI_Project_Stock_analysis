@@ -36,6 +36,7 @@ class Window(ThemedTk):
         self.rightFrame.pack(side='right',fill='both',expand=True,padx=10,pady=10)
         #=========RightFrame END===========
 
+       
         
         #===========leftFrame=============
         self.leftFrame = ttk.Frame(self)
@@ -43,23 +44,23 @@ class Window(ThemedTk):
                 #==TOPFRAME=====
         self.topFrame = ttk.Frame(self.leftFrame)
         ttk.Label(self.topFrame,text='台積電股票預測',style='TopFrame.TLabel',borderwidth=2,relief='groove').pack(pady=10)
-        self.icon_button = outsources.ImageButton(self.topFrame,command=lambda: (print('clicked'), datasource.download_data())[1])
+        self.icon_button = outsources.ImageButton(self.topFrame,command=self.sign )
         self.icon_button.pack(pady=7,side='right',padx=5)
         ttk.Label(self.topFrame,text=' 起始數據: 2020-01-01',style='TopFrame.TLabel',borderwidth=2,relief='groove').pack(ipadx=5,pady=10)
         self.topFrame.pack(fill='x')
                 #==TOPFRAME END=====
            #=== 分析方法===
-        self.analysisFrame = ttk.Frame(self.leftFrame)
-        self.linear_btn = ttk.Button(self.analysisFrame,text='線性回歸分析',style='All.TButton',command=datasource.linear_regression)
+        analysisFrame = ttk.Frame(self.leftFrame)
+        self.linear_btn = ttk.Button(analysisFrame,text='線性回歸分析',style='All.TButton',command=datasource.linear_regression)
         self.linear_btn.grid(row=0,column=0,padx=5,pady=5)
-        self.linear_btn = ttk.Button(self.analysisFrame,text='RSI',style='All.TButton')
+        self.linear_btn = ttk.Button(analysisFrame,text='RSI',style='All.TButton')
         self.linear_btn.grid(row=0,column=1,padx=5,pady=5)
-        self.linear_btn = ttk.Button(self.analysisFrame,text='MACD',style='All.TButton')
+        self.linear_btn = ttk.Button(analysisFrame,text='MACD',style='All.TButton')
         self.linear_btn.grid(row=1,column=0,padx=5,pady=5)
-        self.linear_btn = ttk.Button(self.analysisFrame,text='MA',style='All.TButton')
+        self.linear_btn = ttk.Button(analysisFrame,text='MA',style='All.TButton')
         self.linear_btn.grid(row=1,column=1,padx=5,pady=5)
 
-        self.analysisFrame.pack(fill='x',pady=10)
+        analysisFrame.pack(fill='x',pady=10)
 
            #=== 分析方法end===
             #===預測分析=====
@@ -82,7 +83,8 @@ class Window(ThemedTk):
 
 
 
-
+    def sign(self):
+        print("Button clicked")
 
 
 
@@ -90,7 +92,6 @@ class Window(ThemedTk):
 
 
 def main():
-    
     window= Window(theme='arc')
     window.mainloop()
 

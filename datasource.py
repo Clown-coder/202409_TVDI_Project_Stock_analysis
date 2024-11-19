@@ -40,9 +40,10 @@ def get_close():
 
 
 def download_data():
+    print("download_data function is called")
     symbol = '2330.TW'
     start = '2020-01-01'
-    end = (dt.today() - timedelta(days=1)).strftime('%Y-%m-%d')
+    end = (dt.datetime.today() - timedelta(days=1)).strftime('%Y-%m-%d')
     conn = sqlite3.connect('check_data.db')
     # 下載資料
     try:
@@ -92,7 +93,7 @@ def linear_regression():
     conn = sqlite3.connect('check_data.db')
 
     # 從資料庫讀取資料
-    sql = "SELECT * FROM stock_data"
+    sql = '''SELECT * FROM NewTable'''
     data_from_db = pd.read_sql(sql, conn)
 
     # 關閉資料庫連接
