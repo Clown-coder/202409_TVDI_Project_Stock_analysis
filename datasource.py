@@ -171,7 +171,7 @@ def linear_regression():
     plt.plot(future_dates, predicted_price, label='Future Prediction', color='red', linestyle='--')
 
     # 設定
-    plt.xlim(pd.Timestamp('2022-01-01'), future_dates[-1])
+    plt.xlim(pd.Timestamp('2020-01-01'), future_dates[-1])
     plt.xlabel('Date')
     plt.ylabel('Close Price')
 
