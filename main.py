@@ -90,6 +90,7 @@ class Window(ThemedTk):
 
 
 def main():
+    
     window= Window(theme='arc')
     window.mainloop()
 
