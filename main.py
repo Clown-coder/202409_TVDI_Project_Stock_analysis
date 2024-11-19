@@ -52,7 +52,7 @@ class Window(ThemedTk):
         self.analysisFrame = ttk.Frame(self.leftFrame)
         self.linear_btn = ttk.Button(self.analysisFrame,text='線性回歸分析',style='All.TButton',command=datasource.linear_regression)
         self.linear_btn.grid(row=0,column=0,padx=5,pady=5)
-        self.linear_btn = ttk.Button(self.analysisFrame,text='RSI',style='All.TButton')
+        self.linear_btn = ttk.Button(self.analysisFrame,text='RSI',style='All.TButton',command=datasource.rsi)
         self.linear_btn.grid(row=0,column=1,padx=5,pady=5)
         self.linear_btn = ttk.Button(self.analysisFrame,text='MACD',style='All.TButton')
         self.linear_btn.grid(row=1,column=0,padx=5,pady=5)
