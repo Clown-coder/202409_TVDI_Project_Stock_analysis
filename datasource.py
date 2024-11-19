@@ -15,6 +15,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error, r2_score
 
+
 def date(close):
     conn=sqlite3.connect("check_data.db")
     with conn:
@@ -98,9 +99,9 @@ def linear_regression():
 
     # 關閉資料庫連接
     conn.close()
-
+    
     # 將索引轉換為日期格式
-    data_from_db['Date'] = pd.to_datetime(data_from_db.index)
+    data_from_db['Date'] = pd.to_datetime(data_from_db['Date'])
     # 將日期轉換為從最早日期起的天數
     data_from_db['Days'] = (data_from_db['Date'] - data_from_db['Date'].min()).dt.days
 
@@ -138,6 +139,7 @@ def linear_regression():
     b = model.intercept_
     a = model.coef_
    
+
     
     print(f'Model Score (R²): {model_score:.4f}\nCoeficient: {a} \nIntercept: {b}')
     print("=========================================")
@@ -145,14 +147,35 @@ def linear_regression():
     mse = mean_squared_error(y_test,y_pred)
     r2 = r2_score(y_test,y_pred)
     print(f'Model Score (R²): {r2:.4f}\nMean Squared Error: {mse}')
+    print("=========================================")
+    # if not X_test.empty:
+    #     try:
+    #         test_dates = data_from_db.loc[X_test.index, :].index
+    #         print(test_dates[:5])
+    #     except Exception as e:
+    #         print(f"Error calculating test_dates: {e}")
+    # else:
+    #     print("X_test is empty, cannot calculate test_dates.")
 
+
+
+
+
+    # 確保 X_test 是帶有列名稱的 DataFrame
+    X_test = pd.DataFrame(X_test, columns=['Days'])
+    # 提取測試集對應的日期
+    test_dates = data_from_db.loc[X_test.index,'Date']
+    
+    y_test_pred = model.predict(X_test)
+    
 
     # 繪圖
     plt.figure(figsize=(12, 6))
     plt.plot(data_from_db['Date'], data_from_db['Close'], label='Historical Close Price', color='Blue')
 
     # 使用 model 預測的值
-    plt.plot(data_from_db['Date'], model.predict(X_test), label='Linear Regression', color='orange')
+    # 繪製測試集預測結果
+    plt.plot(test_dates, y_test_pred, label='Linear Regression', color='orange')
 
     # 進行預測
     # 未來30天
@@ -161,7 +184,11 @@ def linear_regression():
     # 獲取最後一個日期的天數
     last_day = data_from_db['Date'].max()
     # 使用模型進行預測
-    future_x = np.arange(data_from_db['Days'].max() + 1, data_from_db['Days'].max() + future_days + 1).reshape(-1, 1)
+    # 建立 future_x 為帶列名稱的 DataFrame
+    future_x = pd.DataFrame(
+    np.arange(data_from_db['Days'].max() + 1, data_from_db['Days'].max() + future_days + 1),
+    columns=['Days'])
+    #future_x = np.arange(data_from_db['Days'].max() + 1, data_from_db['Days'].max() + future_days + 1).reshape(-1, 1)
     predicted_price = model.predict(future_x)
 
     # 將預測結果轉換為日期格式，從最後一天開始
@@ -171,13 +198,26 @@ def linear_regression():
     plt.plot(future_dates, predicted_price, label='Future Prediction', color='red', linestyle='--')
 
     # 設定
-    plt.xlim(pd.Timestamp('2020-01-01'), future_dates[-1])
+    # plt.xlim(pd.Timestamp('2020-01-01'), future_dates[-1])
+    # plt.xlabel('Date')
+    # plt.ylabel('Close Price')
+
+    # #plt.ylim(min(data['Close'].iloc[0].min(),predicted_price.min())-10,max(data['Close'].iloc[0].max(),predicted_price.max())+10)
+    # plt.ylim(0,1500)
+    # plt.title('Close Price and Linear Regression Line with Prediction')
+
+    # plt.legend()
+    # plt.show()
+
+    plt.xlim(data_from_db['Date'].min(), future_dates[-1])
+    plt.ylim(data_from_db['Close'].min() - 10, data_from_db['Close'].max() + 10)
     plt.xlabel('Date')
     plt.ylabel('Close Price')
-
-    #plt.ylim(min(data['Close'].iloc[0].min(),predicted_price.min())-10,max(data['Close'].iloc[0].max(),predicted_price.max())+10)
-    plt.ylim(0,1500)
     plt.title('Close Price and Linear Regression Line with Prediction')
-
     plt.legend()
     plt.show()
+
+
+
+
+
