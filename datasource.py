@@ -106,8 +106,16 @@ def linear_regression():
     # 將日期轉換為從最早日期起的天數
     data_from_db['Days'] = (data_from_db['Date'] - data_from_db['Date'].min()).dt.days
 
-    X = data_from_db[['Days']]  # 自變量
-    y = data_from_db['Close']  # 目標變量
+    X = data_from_db.iloc[3:-2].select_dtypes(include=[np.number]).drop(columns=['Close'])  # 僅選擇數值型欄位，排除 'Close' # 自變量，移除前2行和後2行
+    y = data_from_db['Close'].iloc[3:-2]  # 目標變量，與 X 範圍一致
+
+    print(X.dtypes)  # 應該只包含數值型資料
+    print("=============")
+    print(y.dtypes)  # 應該是數值型
+    # if not X.select_dtypes(include=[np.number]).equals(X):
+    #     raise ValueError("自變量 X 包含非數值欄位，請確認資料格式。")
+    # X = data_from_db[['Days']]  # 自變量
+    # y = data_from_db['Close']  # 目標變量
 
     # 線性回歸模型
 
@@ -133,7 +141,7 @@ def linear_regression():
     # scaler = StandardScaler()
     # X_scarled = scaler.fit_transform(X)
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, train_size = 0.4, random_state = 0)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, train_size = 0.6, random_state = 0)
     model = LinearRegression(fit_intercept=True,copy_X=True,n_jobs=1)
     model.fit(X_train, y_train)
     model_score = model.score(X_train, y_train)
@@ -163,7 +171,7 @@ def linear_regression():
 
 
     # 確保 X_test 是帶有列名稱的 DataFrame
-    X_test = pd.DataFrame(X_test, columns=['Days'])
+    X_test = pd.DataFrame(X_test, columns=X.columns)
     # 提取測試集對應的日期
     test_dates = data_from_db.loc[X_test.index,'Date']
     
@@ -189,6 +197,12 @@ def linear_regression():
     future_x = pd.DataFrame(
     np.arange(data_from_db['Days'].max() + 1, data_from_db['Days'].max() + future_days + 1),
     columns=['Days'])
+
+    # 填充其他特徵，確保與模型訓練的特徵一致
+    for col in ['Open', 'High', 'Low', 'Adj Close', 'Volume']:
+        future_x[col] = 0  # 可以根據需求填充合適的值
+    future_x = future_x[['Open', 'High', 'Low', 'Adj Close', 'Volume', 'Days']]
+
     #future_x = np.arange(data_from_db['Days'].max() + 1, data_from_db['Days'].max() + future_days + 1).reshape(-1, 1)
     predicted_price = model.predict(future_x)
 
