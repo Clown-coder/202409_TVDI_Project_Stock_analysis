@@ -229,10 +229,15 @@ def rsi():
 
     # 關閉資料庫連接
     conn.close()
+
+    data_from_db['Date'] = pd.to_datetime(data_from_db['Date'])
+    # 將日期轉換為從最早日期起的天數
+    data_from_db['Days'] = (data_from_db['Date'] - data_from_db['Date'].min()).dt.days
+
     
     rcParams['font.family'] = 'Microsoft JhengHei'  # 微軟正黑體（或替換為系統中的其他中文字體）
     # Step 2: 計算 RSI
-    window = 12  # RSI 計算窗口
+    window = 14  # RSI 計算窗口
 
     # 計算每日價格變化
     delta = data_from_db['Close'].diff()
@@ -250,21 +255,27 @@ def rsi():
     data_from_db['RSI'] = 100 - (100 / (1 + rs))
 
     # Step 3: 繪製圖形
-    fig, axes = plt.subplots(2, 1, figsize=(12, 10))
+    fig, axes = plt.subplots(2, 1, figsize=(8, 4))
 
     # 設定背景顏色為灰色
     axes[0].set_facecolor('lightgrey')
     axes[1].set_facecolor('lightgrey')
 
     # 繪製收盤價
-    axes[0].plot(data_from_db['Close'], label='Close Price', color='blue')
+    axes[0].plot(data_from_db['Days'],data_from_db['Close'], label='Close Price', color='blue')
     axes[0].set_title('台積電收盤價', fontsize=14)
     axes[0].set_xlabel('日期', fontsize=10)  # X 軸標籤
     axes[0].set_ylabel('價格 (TWD)', fontsize=10)  # Y 軸標籤
     axes[0].legend()
 
+    # 設置 X 軸的範圍和標籤
+    axes[0].set_xlim(data_from_db['Days'].min(), data_from_db['Days'].max())
+    axes[0].set_xticks(data_from_db['Days'][::180])  # 每隔 30 天顯示一個標籤
+    axes[0].set_xticklabels(data_from_db['Date'][::180].dt.strftime('%Y-%m-%d'))  # 日期格式化
+    axes[0].legend()
+
     # 繪製 RSI
-    axes[1].plot(data_from_db['RSI'], label='RSI', color='purple')
+    axes[1].plot(data_from_db['Days'],data_from_db['RSI'], label='RSI', color='purple')
     axes[1].axhline(70, color='red', linestyle='--',
                     linewidth=0.5, label='超買區 (70)')  # 超買區
     axes[1].axhline(30, color='green', linestyle='--',
@@ -273,6 +284,14 @@ def rsi():
     axes[1].set_xlabel('日期', fontsize=10)  # X 軸標籤
     axes[1].set_ylabel('RSI 值', fontsize=10)  # Y 軸標籤
     axes[1].legend()
+
+    # 設置 X 軸的範圍和標籤
+    axes[1].set_xlim(data_from_db['Days'].min(), data_from_db['Days'].max())
+    axes[1].set_xticks(data_from_db['Days'][::180])  # 每隔 30 天顯示一個標籤
+    axes[1].set_xticklabels(data_from_db['Date'][::180].dt.strftime('%Y-%m-%d'))  # 日期格式化
+    axes[1].legend()
+
+
 
     # 調整佈局避免重疊
     plt.tight_layout()
