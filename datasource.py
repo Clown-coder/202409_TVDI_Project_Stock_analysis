@@ -90,11 +90,9 @@ def download_data():
 
 #calculate
 
-def linear_regression(frame):
+def linear_regression():
     
-    for widget in frame.winfo_children():
-        widget.destroy()
-
+    
     # 連接到 SQLite 資料庫
     conn = sqlite3.connect('check_data.db')
 
@@ -158,12 +156,12 @@ def linear_regression(frame):
     
 
     # 繪圖
-    plt.figure(figsize=(12, 6))
-    plt.plot(data_from_db['Date'], data_from_db['Close'], label='Historical Close Price', color='Blue')
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.plot(data_from_db['Date'], data_from_db['Close'], label='Historical Close Price', color='Blue')
 
     # 使用 model 預測的值
     # 繪製測試集預測結果
-    plt.plot(test_dates, y_test_pred, label='Linear Regression', color='orange')
+    ax.plot(test_dates, y_test_pred, label='Linear Regression', color='orange')
 
     #plt.scatter(test_dates, y_test_pred, label='Linear Regression', color='orange')
     
@@ -200,22 +198,16 @@ def linear_regression(frame):
     future_dates = [last_day + pd.Timedelta(days=i) for i in range(1, future_days + 1)]
 
     # 顯示預測價格
-    plt.plot(future_dates, predicted_price, label='Future Prediction', color='red', linestyle='--')
+    ax.plot(future_dates, predicted_price, label='Future Prediction', color='red', linestyle='--')
 
-    plt.xlim(data_from_db['Date'].min(), future_dates[-1])
-    plt.ylim(data_from_db['Close'].min() - 10, data_from_db['Close'].max() + 10)
-    plt.xlabel('Date')
-    plt.ylabel('Close Price')
-    plt.title('Close Price and Linear Regression Line with Prediction')
-    plt.legend()
-    plt.show()
-
-        # 將圖表嵌入到 Tkinter 的 Frame 中
-    canvas = FigureCanvasTkAgg(plt.gcf(), master=frame)  # 指定父容器是 frame
-    canvas.draw()
-    canvas.get_tk_widget().pack(fill="both", expand=True)  # 顯示圖表
-
-
+    ax.set_xlim(data_from_db['Date'].min(), future_dates[-1])
+    ax.set_ylim(data_from_db['Close'].min() - 10, data_from_db['Close'].max() + 10)
+    ax.set_xlabel('Date')
+    ax.set_ylabel('Close Price')
+    ax.set_title('Close Price and Linear Regression Line with Prediction')
+    ax.legend()
+    
+    return fig
 
 
 
