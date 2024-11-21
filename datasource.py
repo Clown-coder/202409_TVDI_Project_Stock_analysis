@@ -15,6 +15,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error, r2_score
 from matplotlib import rcParams
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 
 def date(close):
@@ -89,8 +90,11 @@ def download_data():
 
 #calculate
 
-def linear_regression():
+def linear_regression(frame):
     
+    for widget in frame.winfo_children():
+        widget.destroy()
+
     # 連接到 SQLite 資料庫
     conn = sqlite3.connect('check_data.db')
 
@@ -205,6 +209,14 @@ def linear_regression():
     plt.title('Close Price and Linear Regression Line with Prediction')
     plt.legend()
     plt.show()
+
+        # 將圖表嵌入到 Tkinter 的 Frame 中
+    canvas = FigureCanvasTkAgg(plt.gcf(), master=frame)  # 指定父容器是 frame
+    canvas.draw()
+    canvas.get_tk_widget().pack(fill="both", expand=True)  # 顯示圖表
+
+
+
 
 
 def rsi():

@@ -24,14 +24,8 @@ class Window(ThemedTk):
         #===========RightFrame=============
         self.rightFrame= ttk.Frame(self,borderwidth=2,relief='groove')
 
-        #添加圖表
-        # figure = plt.Figure(figsize =(5,4),dpi=100)
-        # ax = figure.add_subplot(111)
-        # ax.plot([1,2,3,4,5],[10,20,30,45])
-        # ax.set_title('股票分析')
-
-        # canvas = FigureCanvasTkAgg(figure,rightFrame)
-        # canvas.get_tk_widget().pack(fill='both',expand=True)
+        self.current = self.add_image(self.rightFrame,'stock.jpg')
+        
         
         self.rightFrame.pack(side='right',fill='both',expand=True,padx=10,pady=10)
         #=========RightFrame END===========
@@ -50,7 +44,7 @@ class Window(ThemedTk):
                 #==TOPFRAME END=====
            #=== 分析方法===
         self.analysisFrame = ttk.Frame(self.leftFrame)
-        self.linear_btn = ttk.Button(self.analysisFrame,text='線性回歸分析',style='All.TButton',command=datasource.linear_regression)
+        self.linear_btn = ttk.Button(self.analysisFrame,text='線性回歸分析',style='All.TButton',command=datasource.linear_regression(self.rightFrame))
         self.linear_btn.grid(row=0,column=0,padx=5,pady=5)
         self.linear_btn = ttk.Button(self.analysisFrame,text='RSI',style='All.TButton',command=datasource.rsi)
         self.linear_btn.grid(row=0,column=1,padx=5,pady=5)
@@ -82,7 +76,18 @@ class Window(ThemedTk):
 
 
 
+    def add_image(self,frame,image_path):
+        # if self.rightFrame:
+        #     self.rightFrame.destroy()
+        img = Image.open('stock.jpg')
+        photo = ImageTk.PhotoImage(img)
 
+        img_label = tk.Label(frame,image=photo)
+        img_label.image = photo
+        img_label.pack()
+        
+    
+    
 
 
 
