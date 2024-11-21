@@ -56,7 +56,7 @@ class Window(ThemedTk):
         self.linear_btn.grid(row=0,column=1,padx=5,pady=5)
         self.linear_btn = ttk.Button(self.analysisFrame,text='MACD',style='All.TButton')
         self.linear_btn.grid(row=1,column=0,padx=5,pady=5)
-        self.linear_btn = ttk.Button(self.analysisFrame,text='MA',style='All.TButton')
+        self.linear_btn = ttk.Button(self.analysisFrame,text='MA',style='All.TButton',command=datasource.sma)
         self.linear_btn.grid(row=1,column=1,padx=5,pady=5)
 
         self.analysisFrame.pack(fill='x',pady=10)

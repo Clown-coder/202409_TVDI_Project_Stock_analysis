@@ -106,49 +106,24 @@ def linear_regression():
     # 將日期轉換為從最早日期起的天數
     data_from_db['Days'] = (data_from_db['Date'] - data_from_db['Date'].min()).dt.days
 
-    X = data_from_db.iloc[3:-2].select_dtypes(include=[np.number]).drop(columns=['Close'])  # 僅選擇數值型欄位，排除 'Close' # 自變量，移除前2行和後2行
-    y = data_from_db['Close'].iloc[3:-2]  # 目標變量，與 X 範圍一致
-
+    X = data_from_db.iloc[2:-2].select_dtypes(include=[np.number]).drop(columns=['Close'])  # 僅選擇數值型欄位，排除 'Close' # 自變量，移除前2行和後2行
+    y = data_from_db['Close'].iloc[2:-2]  # 目標變量，與 X 範圍一致
+    
+   
     print(X.dtypes)  # 應該只包含數值型資料
     print("=============")
     print(y.dtypes)  # 應該是數值型
-    # if not X.select_dtypes(include=[np.number]).equals(X):
-    #     raise ValueError("自變量 X 包含非數值欄位，請確認資料格式。")
-    # X = data_from_db[['Days']]  # 自變量
-    # y = data_from_db['Close']  # 目標變量
 
     # 線性回歸模型
 
-    '''
-    LinearRegression
-
-    SGDRegressor
-    model = SGDRegressor()
-    model.fit(X, y.values.ravel())
-
-
-
-    fit_intercept: 預設為True，表示有將y軸的截距加入 ，並自動計算出最佳的截距值 ，如果為False，迴歸模型線會直接通過原點
-    normalize : 是否將數據做歸一化（Normalize），預設為False
-    copy_X : 預設為True，表示X會被Copied，如果為False，X會被覆蓋掉
-    n_jobs : 計算模型所使使用的CPU數量，預設為1，如果傳入-1，就會使用全部的CPU
-
-
-    '''
- 
-  
-
-    # scaler = StandardScaler()
-    # X_scarled = scaler.fit_transform(X)
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, train_size = 0.6, random_state = 0)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, train_size = 0.6, random_state = 0,shuffle=False)
     model = LinearRegression(fit_intercept=True,copy_X=True,n_jobs=1)
     model.fit(X_train, y_train)
     model_score = model.score(X_train, y_train)
     b = model.intercept_
     a = model.coef_
-   
-
+    correlations = data_from_db.iloc[2:-2].select_dtypes(include=[np.number]).corr()
+    relevant_features = correlations['Close'].sort_values(ascending=False)
     
     print(f'Model Score (R²): {model_score:.4f}\nCoeficient: {a} \nIntercept: {b}')
     print("=========================================")
@@ -157,6 +132,8 @@ def linear_regression():
     r2 = r2_score(y_test,y_pred)
     print(f'Model Score (R²): {r2:.4f}\nMean Squared Error: {mse}')
     print("=========================================")
+    print(relevant_features)
+
     # if not X_test.empty:
     #     try:
     #         test_dates = data_from_db.loc[X_test.index, :].index
@@ -167,15 +144,13 @@ def linear_regression():
     #     print("X_test is empty, cannot calculate test_dates.")
 
 
-
-
-
     # 確保 X_test 是帶有列名稱的 DataFrame
     X_test = pd.DataFrame(X_test, columns=X.columns)
+    X_test_sorted = X_test.sort_index()
     # 提取測試集對應的日期
-    test_dates = data_from_db.loc[X_test.index,'Date']
+    test_dates = data_from_db.loc[X_test_sorted .index,'Date']
     
-    y_test_pred = model.predict(X_test)
+    y_test_pred = model.predict(X_test_sorted )
     
 
     # 繪圖
@@ -186,6 +161,9 @@ def linear_regression():
     # 繪製測試集預測結果
     plt.plot(test_dates, y_test_pred, label='Linear Regression', color='orange')
 
+    #plt.scatter(test_dates, y_test_pred, label='Linear Regression', color='orange')
+    
+    
     # 進行預測
     # 未來30天
     future_days = 30
@@ -197,32 +175,28 @@ def linear_regression():
     future_x = pd.DataFrame(
     np.arange(data_from_db['Days'].max() + 1, data_from_db['Days'].max() + future_days + 1),
     columns=['Days'])
+    future_x=future_x.sort_values(by='Days')
 
     # 填充其他特徵，確保與模型訓練的特徵一致
-    for col in ['Open', 'High', 'Low', 'Adj Close', 'Volume']:
-        future_x[col] = 0  # 可以根據需求填充合適的值
-    future_x = future_x[['Open', 'High', 'Low', 'Adj Close', 'Volume', 'Days']]
-
+    for col in ['Open', 'High', 'Low', 'Adj Close', 'Volume', 'Days']:
+        diff_mean = data_from_db[col].diff().mean()
+        if col == 'Days':
+            future_x[col] = np.arange(data_from_db['Days'].max() + 1, data_from_db['Days'].max() + 31)
+        else:
+            future_x[col] = data_from_db[col].iloc[-1] + (diff_mean if not pd.isna(diff_mean) else 0)
+    
+    future_x = future_x[X.columns]
+    
     #future_x = np.arange(data_from_db['Days'].max() + 1, data_from_db['Days'].max() + future_days + 1).reshape(-1, 1)
-    predicted_price = model.predict(future_x)
+    
+    future_x_sorted=future_x.sort_values(by='Days')
+    predicted_price = model.predict(future_x_sorted)
 
     # 將預測結果轉換為日期格式，從最後一天開始
     future_dates = [last_day + pd.Timedelta(days=i) for i in range(1, future_days + 1)]
 
     # 顯示預測價格
     plt.plot(future_dates, predicted_price, label='Future Prediction', color='red', linestyle='--')
-
-    # 設定
-    # plt.xlim(pd.Timestamp('2020-01-01'), future_dates[-1])
-    # plt.xlabel('Date')
-    # plt.ylabel('Close Price')
-
-    # #plt.ylim(min(data['Close'].iloc[0].min(),predicted_price.min())-10,max(data['Close'].iloc[0].max(),predicted_price.max())+10)
-    # plt.ylim(0,1500)
-    # plt.title('Close Price and Linear Regression Line with Prediction')
-
-    # plt.legend()
-    # plt.show()
 
     plt.xlim(data_from_db['Date'].min(), future_dates[-1])
     plt.ylim(data_from_db['Close'].min() - 10, data_from_db['Close'].max() + 10)
@@ -307,12 +281,85 @@ def rsi():
 
 
 
+
     # 調整佈局避免重疊
     plt.tight_layout()
 
     # 顯示圖形
     plt.show()
 
+
+
+def sma():
+    # 連接到 SQLite 資料庫
+    conn = sqlite3.connect('check_data.db')
+
+    # 從資料庫讀取資料
+    sql = '''SELECT * FROM NewTable'''
+    data_from_db = pd.read_sql(sql, conn)
+
+    # 關閉資料庫連接
+    conn.close()
+
+    rcParams['font.family'] = 'Microsoft JhengHei'  # 微軟正黑體（或替換為系統中的其他中文字體）
+
+    data_from_db['Date'] = pd.to_datetime(data_from_db['Date'])
+    data_from_db = data_from_db.sort_values(by='Date').reset_index(drop=True)
+    # 將日期轉換為從最早日期起的天數
+    data_from_db['Days'] = (data_from_db['Date'] - data_from_db['Date'].min()).dt.days
+    
+    short_window = 20
+    long_window = 60
+
+    data_from_db['SMA_short'] = data_from_db['Close'].rolling(window=short_window).mean()
+    data_from_db['SMA_long'] = data_from_db['Close'].rolling(window=long_window).mean()
+
+    # 繪製移動平均線與收盤價
+    plt.figure(figsize=(14, 7))
+    plt.plot(data_from_db['Days'],data_from_db['Close'], label='Close Price', color='blue')
+    plt.plot(data_from_db['Days'],data_from_db['SMA_short'], label='20-Day SMA', color='orange', linestyle='--')
+    plt.plot(data_from_db['Days'],data_from_db['SMA_long'], label='90-Day SMA', color='grey', linestyle='--')
+
+    # # 標註買入與賣出信號
+    # buy_signals = (data_from_db['SMA_short'] > data_from_db['SMA_long']) & (data_from_db['SMA_short'].shift(1) <= data_from_db['SMA_long'].shift(1))
+    # sell_signals = (data_from_db['SMA_short'] < data_from_db['SMA_long']) & (data_from_db['SMA_short'].shift(1) >= data_from_db['SMA_long'].shift(1))
+
+    # plt.scatter(data_from_db.loc[buy_signals,'Days'], data_from_db.loc[buy_signals,'Close'], marker='^', color='green', label='Buy Signal', alpha=1)
+    # plt.scatter(data_from_db.loc[sell_signals,'Days'], data_from_db.loc[sell_signals,'Close'], marker='v', color='red', label='Sell Signal', alpha=1)
+
+    # 設定買入與賣出信號的條件
+    buy_signals = (
+        (data_from_db['SMA_short'] > data_from_db['SMA_long']) &
+        (data_from_db['SMA_short'].shift(1) <= data_from_db['SMA_long'].shift(1))
+    )
+
+    sell_signals = (
+        (data_from_db['SMA_short'] < data_from_db['SMA_long']) &
+        (data_from_db['SMA_short'].shift(1) >= data_from_db['SMA_long'].shift(1))
+    )
+
+    # 繪製買入與賣出信號
+    plt.scatter(data_from_db.loc[buy_signals, 'Days'], data_from_db.loc[buy_signals, 'Close'], 
+                marker='^', color='green', label='Buy Signal', alpha=1,s=100 )
+    plt.scatter(data_from_db.loc[sell_signals, 'Days'], data_from_db.loc[sell_signals, 'Close'], 
+                marker='v', color='red', label='Sell Signal', alpha=1,s=100 )
+
+
+    plt.title('台積電收盤價與移動平均線')
+    plt.xlabel('日期')
+    plt.ylabel('價格 (TWD)')
+    # 設定 x 軸範圍與標籤
+    plt.xlim(data_from_db['Days'].min(), data_from_db['Days'].max())
+    plt.xticks(
+        ticks=data_from_db['Days'][::180],  # 每隔 180 天顯示一個標籤
+        labels=data_from_db['Date'][::180].dt.strftime('%Y-%m-%d'),  # 日期格式化
+        rotation=45
+    )
+
+    plt.legend()
+    plt.tight_layout()
+    plt.grid()
+    plt.show()
 
 
 
