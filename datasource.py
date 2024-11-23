@@ -247,7 +247,7 @@ def rsi():
     data_from_db['RSI'] = 100 - (100 / (1 + rs))
 
     # Step 3: 繪製圖形
-    fig, axes = plt.subplots(2, 1, figsize=(8, 4))
+    fig, axes = plt.subplots(2, 1, figsize=(12, 6))
 
     # 設定背景顏色為灰色
     axes[0].set_facecolor('lightgrey')
@@ -283,14 +283,11 @@ def rsi():
     axes[1].set_xticklabels(data_from_db['Date'][::180].dt.strftime('%Y-%m-%d'))  # 日期格式化
     axes[1].legend()
 
-
-
-
     # 調整佈局避免重疊
     plt.tight_layout()
 
     # 顯示圖形
-    plt.show()
+    return fig   
 
 
 
@@ -319,10 +316,10 @@ def sma():
     data_from_db['SMA_long'] = data_from_db['Close'].rolling(window=long_window).mean()
 
     # 繪製移動平均線與收盤價
-    plt.figure(figsize=(14, 7))
-    plt.plot(data_from_db['Days'],data_from_db['Close'], label='Close Price', color='blue')
-    plt.plot(data_from_db['Days'],data_from_db['SMA_short'], label='20-Day SMA', color='orange', linestyle='--')
-    plt.plot(data_from_db['Days'],data_from_db['SMA_long'], label='90-Day SMA', color='grey', linestyle='--')
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.plot(data_from_db['Days'],data_from_db['Close'], label='Close Price', color='blue')
+    ax.plot(data_from_db['Days'],data_from_db['SMA_short'], label='20-Day SMA', color='orange', linestyle='--')
+    ax.plot(data_from_db['Days'],data_from_db['SMA_long'], label='90-Day SMA', color='grey', linestyle='--')
 
     # # 標註買入與賣出信號
     # buy_signals = (data_from_db['SMA_short'] > data_from_db['SMA_long']) & (data_from_db['SMA_short'].shift(1) <= data_from_db['SMA_long'].shift(1))
@@ -343,27 +340,92 @@ def sma():
     )
 
     # 繪製買入與賣出信號
-    plt.scatter(data_from_db.loc[buy_signals, 'Days'], data_from_db.loc[buy_signals, 'Close'], 
+    ax.scatter(data_from_db.loc[buy_signals, 'Days'], data_from_db.loc[buy_signals, 'Close'], 
                 marker='^', color='green', label='Buy Signal', alpha=1,s=100 )
-    plt.scatter(data_from_db.loc[sell_signals, 'Days'], data_from_db.loc[sell_signals, 'Close'], 
+    ax.scatter(data_from_db.loc[sell_signals, 'Days'], data_from_db.loc[sell_signals, 'Close'], 
                 marker='v', color='red', label='Sell Signal', alpha=1,s=100 )
 
 
-    plt.title('台積電收盤價與移動平均線')
-    plt.xlabel('日期')
-    plt.ylabel('價格 (TWD)')
+    ax.set_title('台積電收盤價與移動平均線')
+    ax.set_xlabel('日期')
+    ax.set_ylabel('價格 (TWD)')
     # 設定 x 軸範圍與標籤
-    plt.xlim(data_from_db['Days'].min(), data_from_db['Days'].max())
+    ax.set_xlim(data_from_db['Days'].min(), data_from_db['Days'].max())
     plt.xticks(
         ticks=data_from_db['Days'][::180],  # 每隔 180 天顯示一個標籤
         labels=data_from_db['Date'][::180].dt.strftime('%Y-%m-%d'),  # 日期格式化
         rotation=45
     )
 
-    plt.legend()
+    ax.legend()
     plt.tight_layout()
     plt.grid()
-    plt.show()
+    return fig
 
 
+def macd():
+    # 連接到 SQLite 資料庫
+    conn = sqlite3.connect('check_data.db')
+
+    # 從資料庫讀取資料
+    sql = '''SELECT * FROM NewTable'''
+    data_from_db = pd.read_sql(sql, conn)
+
+    # 關閉資料庫連接
+    conn.close()
+
+    rcParams['font.family'] = 'Microsoft JhengHei'  # 微軟正黑體（或替換為系統中的其他中文字體）
+    rcParams['axes.unicode_minus'] = False
+
+     # 確保日期格式正確，並按日期排序
+    data_from_db['Date'] = pd.to_datetime(data_from_db['Date'])
+    data_from_db = data_from_db.sort_values(by='Date').reset_index(drop=True)
+
+    # 計算 MACD 指標
+    short_ema_span = 12  # 短期 EMA 時間範圍
+    long_ema_span = 26   # 長期 EMA 時間範圍
+    signal_span = 9      # 信號線 EMA 時間範圍
+
+    data_from_db['EMA_short'] = data_from_db['Close'].ewm(span=short_ema_span, adjust=False).mean()
+    data_from_db['EMA_long'] = data_from_db['Close'].ewm(span=long_ema_span, adjust=False).mean()
+
+    # 計算 MACD 和信號線
+    data_from_db['MACD'] = data_from_db['EMA_short'] - data_from_db['EMA_long']
+    data_from_db['Signal_Line'] = data_from_db['MACD'].ewm(span=signal_span, adjust=False).mean()
+    data_from_db['MACD_Histogram'] = data_from_db['MACD'] - data_from_db['Signal_Line']
+
+    # 將日期處理為每月的第一天作為標籤
+    data_from_db['Quarter'] = data_from_db['Date'].dt.to_period('3M').astype('datetime64[ns]')
+    quarterly_ticks = data_from_db['Quarter'].drop_duplicates()
+
+    # 繪製 MACD 與信號線
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.plot(data_from_db['Date'], data_from_db['MACD'], label='MACD', color='blue')
+    ax.plot(data_from_db['Date'], data_from_db['Signal_Line'], label='Signal Line', color='orange', linestyle='--')
+
+
+     # 準備柱狀圖數據
+    positive_histogram = data_from_db['MACD_Histogram'].clip(lower=0)  # 只取正值
+    negative_histogram = data_from_db['MACD_Histogram'].clip(upper=0)  # 只取負值
+    # 繪製 MACD 柱狀圖
+    
+    ax.bar(data_from_db['Date'], positive_histogram, width=1, color='green', label='Positive Histogram')
+    ax.bar(data_from_db['Date'], negative_histogram, width=1, color='red', label='Negative Histogram')
+
+    # 設定標題與軸標籤
+    ax.set_title('台積電 MACD 指標')
+    ax.set_xlabel('日期')
+    ax.set_ylabel('股價')
+
+    # 調整 x 軸日期標籤格式與範圍
+    plt.xticks(
+        ticks=quarterly_ticks,  # 每隔 30 天顯示一個標籤
+        labels=quarterly_ticks.dt.strftime('%Y-%m'),  # 日期格式化
+        rotation=45
+    )
+    ax.legend(fontsize=12)
+    plt.tight_layout()
+    plt.grid()
+
+    return fig
 

@@ -10,12 +10,13 @@ import outsources
 import datasource
 import mplfinance
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import sys
 
 class Window(ThemedTk):
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
         self.title("Stock Analysis")
-        
+        self.geometry('1800x600')
         
         #==========STYLE===========
         style = ttk.Style(self)
@@ -24,16 +25,16 @@ class Window(ThemedTk):
         #==========END style============
         
         #===========RightFrame=============
-        self.rightFrame= ttk.Frame(self,borderwidth=2,relief='groove')
+        self.rightFrame= ttk.Frame(self,borderwidth=2,relief='groove',width=1200, height=600)
 
         #===========canvas area=============
-        self.canvas_area = tk.Canvas(self.rightFrame,width=600, height=400)
+        self.canvas_area = tk.Canvas(self.rightFrame,width=1200, height=600, bg="white")
         
         self.current = self.add_image(self.rightFrame,'stock.jpg')
     
-        self.canvas_area.pack(fill='both', expand=True)
+        self.canvas_area.pack()
          #===========end canvas area=============
-        self.rightFrame.pack(side='right',fill='both',expand=True,padx=10,pady=10)
+        self.rightFrame.pack(side='right',padx=10,pady=10)
         #=========RightFrame END===========
 
         
@@ -52,11 +53,11 @@ class Window(ThemedTk):
         self.analysisFrame = ttk.Frame(self.leftFrame)
         self.linear_btn = ttk.Button(self.analysisFrame,text='線性回歸分析',style='All.TButton',command=self.plot_regression)
         self.linear_btn.grid(row=0,column=0,padx=5,pady=5)
-        self.linear_btn = ttk.Button(self.analysisFrame,text='RSI',style='All.TButton',command=datasource.rsi)
+        self.linear_btn = ttk.Button(self.analysisFrame,text='RSI',style='All.TButton',command=self.plot_rsi)
         self.linear_btn.grid(row=0,column=1,padx=5,pady=5)
-        self.linear_btn = ttk.Button(self.analysisFrame,text='MACD',style='All.TButton')
+        self.linear_btn = ttk.Button(self.analysisFrame,text='MACD',style='All.TButton',command=self.plot_macd)
         self.linear_btn.grid(row=1,column=0,padx=5,pady=5)
-        self.linear_btn = ttk.Button(self.analysisFrame,text='MA',style='All.TButton',command=datasource.sma)
+        self.linear_btn = ttk.Button(self.analysisFrame,text='MA',style='All.TButton',command=self.plot_sma)
         self.linear_btn.grid(row=1,column=1,padx=5,pady=5)
 
         self.analysisFrame.pack(fill='x',pady=10)
@@ -85,7 +86,7 @@ class Window(ThemedTk):
     def add_image(self,frame,image_path):
         
         img = Image.open('stock.jpg')
-        resized_img = img.resize((1200, 675), Image.LANCZOS)
+        resized_img = img.resize((1200, 600), Image.LANCZOS)
         photo = ImageTk.PhotoImage(resized_img)
 
         img_label = tk.Label(frame,image=photo)
@@ -103,15 +104,54 @@ class Window(ThemedTk):
         canvas.draw()
         canvas.get_tk_widget().pack(fill='both',expand=True)
 
+    def plot_rsi(self):
+        fig = datasource.rsi()
+
+        for widget in self.rightFrame.winfo_children():
+            widget.destroy()
+        
+        canvas = FigureCanvasTkAgg(fig,master=self.rightFrame)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill='both',expand=True)
+    
+    def plot_sma(self):
+        fig = datasource.sma()
+
+        for widget in self.rightFrame.winfo_children():
+            widget.destroy()
+        
+        canvas = FigureCanvasTkAgg(fig,master=self.rightFrame)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill='both',expand=True)
+
+    def plot_macd(self):
+        fig = datasource.macd()
+
+        for widget in self.rightFrame.winfo_children():
+            widget.destroy()
+        
+        canvas = FigureCanvasTkAgg(fig,master=self.rightFrame)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill='both',expand=True)
 
 
 
 
+
+
+
+    
 
 def main():
-    
+    def on_closing():
+        print("Exiting...")
+        window.destroy()
+        sys.exit()
     window= Window(theme='arc')
+    window.protocol("WM_DELETE_WINDOW", on_closing)
+
     window.mainloop()
+    
 
 
 if __name__ == '__main__':
