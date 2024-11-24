@@ -11,6 +11,7 @@ import datasource
 import mplfinance
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import sys
+import sqlite3
 
 class Window(ThemedTk):
     def __init__(self,*args,**kwargs):
@@ -25,10 +26,10 @@ class Window(ThemedTk):
         #==========END style============
         
         #===========RightFrame=============
-        self.rightFrame= ttk.Frame(self,borderwidth=2,relief='groove',width=1200, height=600)
+        self.rightFrame= ttk.Frame(self,borderwidth=2,relief='groove',width=1050, height=600)
 
         #===========canvas area=============
-        self.canvas_area = tk.Canvas(self.rightFrame,width=1200, height=600, bg="white")
+        self.canvas_area = tk.Canvas(self.rightFrame,width=1050, height=600, bg="white")
         
         self.current = self.add_image(self.rightFrame,'stock.jpg')
     
@@ -44,7 +45,7 @@ class Window(ThemedTk):
                 #==TOPFRAME=====
         self.topFrame = ttk.Frame(self.leftFrame)
         ttk.Label(self.topFrame,text='台積電股票預測',style='TopFrame.TLabel',borderwidth=2,relief='groove').pack(pady=10)
-        self.icon_button = outsources.ImageButton(self.topFrame,command=lambda: (print('clicked'), datasource.download_data())[1])
+        self.icon_button = outsources.ImageButton(self.topFrame,command=self.update_treeview)
         self.icon_button.pack(pady=7,side='right',padx=5)
         ttk.Label(self.topFrame,text=' 起始數據: 2020-01-01',style='TopFrame.TLabel',borderwidth=2,relief='groove').pack(ipadx=5,pady=10)
         self.topFrame.pack(fill='x')
@@ -72,9 +73,40 @@ class Window(ThemedTk):
         self.result_entry.grid(row=0,column=1,padx=15,pady=5)
         self.resultFrame.pack(fill='x', pady=10)
                 #=== 預測分析 end===
+        
+            #=== 資料庫 frame===
+        self.databaseFrame = ttk.Frame(self.leftFrame)
+        self.tree_scrollbar = ttk.Scrollbar(self.databaseFrame, orient="vertical")
+            #=== tree viw frame===
 
-           
+        self.tree = ttk.Treeview(self.databaseFrame,columns=('Date', "Open", 'High', 'Low', 'Volume', "Close"),show='headings',yscrollcommand=self.tree_scrollbar.set)
+        self.tree.heading("Date", text="Date")
+        self.tree.heading("Open", text="Open")
+        self.tree.heading("High", text="High")
+        self.tree.heading("Low", text="Low")
+        self.tree.heading("Volume", text="Volume")
+        self.tree.heading("Close", text="Close")
 
+        self.tree.column("Date", width=100, anchor="center")
+        self.tree.column("Open", width=50, anchor="center")
+        self.tree.column("High", width=50, anchor="center")
+        self.tree.column("Low", width=50, anchor="center")
+        self.tree.column("Volume", width=100, anchor="center")
+        self.tree.column("Close", width=50, anchor="center")
+
+        
+
+        # 使用 grid 布局確保滾動條在右側
+        self.tree.grid(row=0, column=0, sticky="nsew")
+        self.tree_scrollbar.grid(row=0, column=1, sticky="ns")  # 垂直填滿右側
+        
+        self.tree_scrollbar.config(command=self.tree.yview)
+             #=== tree viw frame end===
+        # 配置滾動條與 Treeview 的交互
+        self.databaseFrame.pack(padx=10)
+        
+            #=== 資料庫 frame end===
+        self.load_data()
 
         self.leftFrame.pack(side='left',fill='y',padx=10,pady=10)
 
@@ -86,7 +118,7 @@ class Window(ThemedTk):
     def add_image(self,frame,image_path):
         
         img = Image.open('stock.jpg')
-        resized_img = img.resize((1200, 600), Image.LANCZOS)
+        resized_img = img.resize((1050, 600), Image.LANCZOS)
         photo = ImageTk.PhotoImage(resized_img)
 
         img_label = tk.Label(frame,image=photo)
@@ -134,8 +166,27 @@ class Window(ThemedTk):
         canvas.draw()
         canvas.get_tk_widget().pack(fill='both',expand=True)
 
+    def load_data(self):
+         # 連接到 SQLite 資料庫
+        conn = sqlite3.connect('check_data.db')
 
+        # 從資料庫讀取資料
+        sql = sql = '''SELECT Date, Open, High, Low, Volume, Close FROM NewTable'''
+        data_from_db = pd.read_sql(sql, conn)
 
+        # 關閉資料庫連接
+        conn.close()
+
+        for _,row in data_from_db.iterrows():
+            self.tree.insert("","end",values=row.tolist())
+    
+    def update_treeview(self):
+        datasource.download_data()
+        # Step 2: 清除 Treeview 的現有資料
+        self.tree.delete(*self.tree.get_children())
+
+        # Step 3: 重新加載最新資料到 Treeview
+        self.load_data()
 
 
 
@@ -147,7 +198,7 @@ def main():
         print("Exiting...")
         window.destroy()
         sys.exit()
-    window= Window(theme='arc')
+    window= Window(theme='clam')
     window.protocol("WM_DELETE_WINDOW", on_closing)
 
     window.mainloop()

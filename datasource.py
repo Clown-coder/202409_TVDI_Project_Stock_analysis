@@ -156,7 +156,7 @@ def linear_regression():
     
 
     # 繪圖
-    fig, ax = plt.subplots(figsize=(12, 6))
+    fig, ax = plt.subplots(figsize=(10.5, 6))
     ax.plot(data_from_db['Date'], data_from_db['Close'], label='Historical Close Price', color='Blue')
 
     # 使用 model 預測的值
@@ -247,7 +247,7 @@ def rsi():
     data_from_db['RSI'] = 100 - (100 / (1 + rs))
 
     # Step 3: 繪製圖形
-    fig, axes = plt.subplots(2, 1, figsize=(12, 6))
+    fig, axes = plt.subplots(2, 1, figsize=(10.5, 6))
 
     # 設定背景顏色為灰色
     axes[0].set_facecolor('lightgrey')
@@ -316,7 +316,7 @@ def sma():
     data_from_db['SMA_long'] = data_from_db['Close'].rolling(window=long_window).mean()
 
     # 繪製移動平均線與收盤價
-    fig, ax = plt.subplots(figsize=(12, 6))
+    fig, ax = plt.subplots(figsize=(10.5, 6))
     ax.plot(data_from_db['Days'],data_from_db['Close'], label='Close Price', color='blue')
     ax.plot(data_from_db['Days'],data_from_db['SMA_short'], label='20-Day SMA', color='orange', linestyle='--')
     ax.plot(data_from_db['Days'],data_from_db['SMA_long'], label='90-Day SMA', color='grey', linestyle='--')
@@ -399,7 +399,7 @@ def macd():
     quarterly_ticks = data_from_db['Quarter'].drop_duplicates()
 
     # 繪製 MACD 與信號線
-    fig, ax = plt.subplots(figsize=(12, 6))
+    fig, ax = plt.subplots(figsize=(10.5, 6))
     ax.plot(data_from_db['Date'], data_from_db['MACD'], label='MACD', color='blue')
     ax.plot(data_from_db['Date'], data_from_db['Signal_Line'], label='Signal Line', color='orange', linestyle='--')
 
