@@ -140,6 +140,7 @@ class Window(ThemedTk):
         canvas.get_tk_widget().pack(fill='both',expand=True)
 
     def plot_rsi(self):
+        self.result_entry.delete(0,tk.END)
         fig = datasource.rsi()
 
         for widget in self.rightFrame.winfo_children():
@@ -150,6 +151,7 @@ class Window(ThemedTk):
         canvas.get_tk_widget().pack(fill='both',expand=True)
     
     def plot_sma(self):
+        self.result_entry.delete(0,tk.END)
         fig = datasource.sma()
 
         for widget in self.rightFrame.winfo_children():
@@ -160,6 +162,7 @@ class Window(ThemedTk):
         canvas.get_tk_widget().pack(fill='both',expand=True)
 
     def plot_macd(self):
+        self.result_entry.delete(0,tk.END)
         fig = datasource.macd()
 
         for widget in self.rightFrame.winfo_children():
