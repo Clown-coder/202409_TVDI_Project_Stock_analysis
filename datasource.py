@@ -207,6 +207,8 @@ def linear_regression():
     ax.set_title('Close Price and Linear Regression Line with Prediction')
     ax.legend()
     
+    
+    
     return fig
 
 
@@ -390,42 +392,112 @@ def macd():
     data_from_db['EMA_long'] = data_from_db['Close'].ewm(span=long_ema_span, adjust=False).mean()
 
     # 計算 MACD 和信號線
-    data_from_db['MACD'] = data_from_db['EMA_short'] - data_from_db['EMA_long']
-    data_from_db['Signal_Line'] = data_from_db['MACD'].ewm(span=signal_span, adjust=False).mean()
-    data_from_db['MACD_Histogram'] = data_from_db['MACD'] - data_from_db['Signal_Line']
+    data_from_db['DIFF'] = data_from_db['EMA_short'] - data_from_db['EMA_long']
+    data_from_db['DEA'] = data_from_db['DIFF'].ewm(span=signal_span, adjust=False).mean()
+    data_from_db['MACD_Histogram'] = data_from_db['DIFF'] - data_from_db['DEA']
 
     # 將日期處理為每月的第一天作為標籤
     data_from_db['Quarter'] = data_from_db['Date'].dt.to_period('3M').astype('datetime64[ns]')
-    quarterly_ticks = data_from_db['Quarter'].drop_duplicates()
+    
 
     # 繪製 MACD 與信號線
-    fig, ax = plt.subplots(figsize=(10.5, 6))
-    ax.plot(data_from_db['Date'], data_from_db['MACD'], label='MACD', color='blue')
-    ax.plot(data_from_db['Date'], data_from_db['Signal_Line'], label='Signal Line', color='orange', linestyle='--')
-
+    fig, (ax1,ax2) = plt.subplots(2,1,figsize=(10.5, 6),sharex=True)
+    ax1.plot(data_from_db['Date'], data_from_db['Close'], label='Stock Price', color='blue')
+    ax1.plot(data_from_db['Date'], data_from_db['EMA_short'], label='EMA 12', color='yellow', linestyle='--')
+    ax1.plot(data_from_db['Date'], data_from_db['EMA_long'], label='EMA 26', color='red', linestyle='--')
+    ax1.set_title('Stock Price and EMA12/EMA26', fontsize=14)
+    ax1.set_ylabel('Stock Price')
+    ax1.legend()
 
      # 準備柱狀圖數據
     positive_histogram = data_from_db['MACD_Histogram'].clip(lower=0)  # 只取正值
     negative_histogram = data_from_db['MACD_Histogram'].clip(upper=0)  # 只取負值
     # 繪製 MACD 柱狀圖
     
-    ax.bar(data_from_db['Date'], positive_histogram, width=1, color='green', label='Positive Histogram')
-    ax.bar(data_from_db['Date'], negative_histogram, width=1, color='red', label='Negative Histogram')
-
-    # 設定標題與軸標籤
-    ax.set_title('台積電 MACD 指標')
-    ax.set_xlabel('日期')
-    ax.set_ylabel('股價')
+    ax2.plot(data_from_db['Date'], data_from_db['DIFF'], label='DIFF (EMA12 - EMA26)', color='blue')
+    ax2.plot(data_from_db['Date'], data_from_db['DEA'], label='DEA (EMA9 of DIFF)', color='orange')
+    ax2.bar(data_from_db['Date'], positive_histogram, width=1, color='green', label='Positive Histogram')
+    ax2.bar(data_from_db['Date'], negative_histogram, width=1, color='red', label='Negative Histogram')
+    ax2.set_title('MACD: DIFF, DEA, and Histogram', fontsize=14)
+    ax2.set_xlabel('Date')
+    ax2.set_ylabel('MACD Value')
+    ax2.legend(loc='upper left', fontsize=6)
 
     # 調整 x 軸日期標籤格式與範圍
-    plt.xticks(
-        ticks=quarterly_ticks,  # 每隔 30 天顯示一個標籤
-        labels=quarterly_ticks.dt.strftime('%Y-%m'),  # 日期格式化
-        rotation=45
-    )
-    ax.legend(fontsize=12)
+    ax2.set_xticks(data_from_db['Date'][::int(len(data_from_db) / 10)])  # 每 10 個點顯示一個標籤
+    ax2.set_xticklabels(data_from_db['Date'].dt.strftime('%Y-%m-%d')[::int(len(data_from_db) / 10)], rotation=45)
+
+    
     plt.tight_layout()
-    plt.grid()
+    plt.grid(True)
 
     return fig
 
+
+def get_future_day1_price(model,data_from_db,future_days=30):
+    # 連接到 SQLite 資料庫
+    conn = sqlite3.connect('check_data.db')
+
+    # 從資料庫讀取資料
+    sql = '''SELECT * FROM NewTable'''
+    data_from_db = pd.read_sql(sql, conn)
+
+    # 關閉資料庫連接
+    conn.close()
+
+    data_from_db['Date'] = pd.to_datetime(data_from_db['Date'])
+    # 將日期轉換為從最早日期起的天數
+    data_from_db['Days'] = (data_from_db['Date'] - data_from_db['Date'].min()).dt.days
+
+    X = data_from_db.iloc[2:-2].select_dtypes(include=[np.number]).drop(columns=['Close'])  # 僅選擇數值型欄位，排除 'Close' # 自變量，移除前2行和後2行
+    y = data_from_db['Close'].iloc[2:-2]  # 目標變量，與 X 範圍一致
+    
+    
+    X_train, X_test, y_train, y_test = train_test_split(X, y, train_size = 0.6, random_state = 0,shuffle=False)
+    model = LinearRegression(fit_intercept=True,copy_X=True,n_jobs=1)
+    model.fit(X_train, y_train)
+    
+    X_test = pd.DataFrame(X_test, columns=X.columns)
+    
+    # 進行預測
+    # 未來30天
+    future_days = 30
+
+    # 使用模型進行預測
+    # 建立 future_x 為帶列名稱的 DataFrame
+    future_x = pd.DataFrame(
+    np.arange(data_from_db['Days'].max() + 1, data_from_db['Days'].max() + future_days + 1),
+    columns=['Days'])
+    future_x=future_x.sort_values(by='Days')
+
+    # 填充其他特徵，確保與模型訓練的特徵一致
+    for col in ['Open', 'High', 'Low', 'Adj Close', 'Volume', 'Days']:
+        diff_mean = data_from_db[col].diff().mean()
+        if col == 'Days':
+            future_x[col] = np.arange(data_from_db['Days'].max() + 1, data_from_db['Days'].max() + 31)
+        else:
+            future_x[col] = data_from_db[col].iloc[-1] + (diff_mean if not pd.isna(diff_mean) else 0)
+    
+    future_x = future_x[X.columns]
+    
+    # 使用模型進行預測
+    future_x_sorted = future_x.sort_values(by='Days')
+    predicted_price = model.predict(future_x_sorted)
+
+    # 返回未來第一天的預測數值
+    first_day_prediction = predicted_price[0]
+    return first_day_prediction
+    
+    
+def get_model_and_data():
+    # 這裡可以初始化 model 和 data_from_db，然後返回
+    model = LinearRegression(fit_intercept=True, copy_X=True, n_jobs=1)
+    # 連接到 SQLite 資料庫
+    conn = sqlite3.connect('check_data.db')
+    sql = '''SELECT * FROM NewTable'''
+    data_from_db = pd.read_sql(sql, conn)
+    conn.close()
+    
+    return model, data_from_db['Close']
+   
+   

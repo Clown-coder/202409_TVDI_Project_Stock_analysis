@@ -69,7 +69,6 @@ class Window(ThemedTk):
         ttk.Label(self.resultFrame,text='預測分析',borderwidth=2,relief='groove',style='TopFrame.TLabel').grid()
         ttk.Label(self.resultFrame,text='明日股價',borderwidth=2,relief='groove',style='TopFrame.TLabel').grid(row=0,column=0,padx=5,pady=5)
         self.result_entry = ttk.Entry(self.resultFrame)
-        
         self.result_entry.grid(row=0,column=1,padx=15,pady=5)
         self.resultFrame.pack(fill='x', pady=10)
                 #=== 預測分析 end===
@@ -128,6 +127,10 @@ class Window(ThemedTk):
     
     def plot_regression(self):
         fig = datasource.linear_regression()
+        model,data_from_db = datasource.get_model_and_data()
+        firstdat_predict = datasource.get_future_day1_price(model,data_from_db)
+        self.result_entry.delete(0,tk.END)
+        self.result_entry.insert(0,f'{firstdat_predict:.2f}')
 
         for widget in self.rightFrame.winfo_children():
             widget.destroy()
