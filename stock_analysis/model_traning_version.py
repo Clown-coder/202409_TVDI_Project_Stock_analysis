@@ -16,7 +16,6 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error, r2_score
 from matplotlib import rcParams
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import joblib
 
 
 def date(close):
@@ -46,7 +45,7 @@ def get_close():
 def download_data():
     print("download_data function is called")
     symbol = '2330.TW'
-    start = '2015-01-01'
+    start = '2020-01-01'
     end = (dt.datetime.today() - timedelta(days=1)).strftime('%Y-%m-%d')
     conn = sqlite3.connect('check_data.db')
     # 下載資料
@@ -98,13 +97,12 @@ def linear_regression():
     conn = sqlite3.connect('check_data.db')
 
     # 從資料庫讀取資料
-    sql = '''SELECT * FROM NewTable ORDER BY DATE ASC'''
+    sql = '''SELECT * FROM NewTable'''
     data_from_db = pd.read_sql(sql, conn)
 
     # 關閉資料庫連接
     conn.close()
     
-    model = joblib.load('linear_regression_model.pkl')
     # 將索引轉換為日期格式
     data_from_db['Date'] = pd.to_datetime(data_from_db['Date'])
     # 將日期轉換為從最早日期起的天數
@@ -113,7 +111,6 @@ def linear_regression():
     X = data_from_db.iloc[2:-2].select_dtypes(include=[np.number]).drop(columns=['Close'])  # 僅選擇數值型欄位，排除 'Close' # 自變量，移除前2行和後2行
     y = data_from_db['Close'].iloc[2:-2]  # 目標變量，與 X 範圍一致
     
-    
    
     print(X.dtypes)  # 應該只包含數值型資料
     print("=============")
@@ -121,29 +118,23 @@ def linear_regression():
 
     # 線性回歸模型
 
-    # X_train, X_test, y_train, y_test = train_test_split(X, y, train_size = 0.1, random_state = 0,shuffle=False)
-    '''
+    X_train, X_test, y_train, y_test = train_test_split(X, y, train_size = 0.6, random_state = 0,shuffle=False)
     model = LinearRegression(fit_intercept=True,copy_X=True,n_jobs=1)
     model.fit(X_train, y_train)
     model_score = model.score(X_train, y_train)
-     '''
-    
     b = model.intercept_
     a = model.coef_
     correlations = data_from_db.iloc[2:-2].select_dtypes(include=[np.number]).corr()
     relevant_features = correlations['Close'].sort_values(ascending=False)
-    y_actual = data_from_db['Close'].iloc[2:-2]  # 這是原始的實際值範圍，與 X 範圍對應
-    print(f'Coeficient: {a} \nIntercept: {b}')
+    
+    print(f'Model Score (R²): {model_score:.4f}\nCoeficient: {a} \nIntercept: {b}')
     print("=========================================")
-    y_pred = model.predict(X)
-    mse = mean_squared_error(y_actual,y_pred)
-    r2 = r2_score(y_actual,y_pred)
+    y_pred = model.predict(X_test)
+    mse = mean_squared_error(y_test,y_pred)
+    r2 = r2_score(y_test,y_pred)
     print(f'Model Score (R²): {r2:.4f}\nMean Squared Error: {mse}')
     print("=========================================")
     print(relevant_features)
-    '''
-    # joblib.dump(model,'linear_regression_model.pkl')
-    # print('Model Saved')
 
     # if not X_test.empty:
     #     try:
@@ -153,8 +144,8 @@ def linear_regression():
     #         print(f"Error calculating test_dates: {e}")
     # else:
     #     print("X_test is empty, cannot calculate test_dates.")
-    '''
-    '''
+
+
     # 確保 X_test 是帶有列名稱的 DataFrame
     X_test = pd.DataFrame(X_test, columns=X.columns)
     X_test_sorted = X_test.sort_index()
@@ -162,27 +153,15 @@ def linear_regression():
     test_dates = data_from_db.loc[X_test_sorted .index,'Date']
     
     y_test_pred = model.predict(X_test_sorted )
-    '''
-    # X_test = pd.DataFrame(X.iloc[2:-2], columns=X.columns)  # 確保 X_test 是 DataFrame
-    # X_test_sorted = X_test.sort_index()  # 確保順序與原始資料一致
-    # # 提取測試集對應的日期
-    # test_dates = data_from_db.loc[X_test_sorted.index, 'Date']
-    # 使用已經訓練好的模型進行預測
-    y_test_pred = model.predict(X)
+    
 
-    # 獲取對應的日期範圍，排除前 2 行和後 2 行
-    plot_dates = data_from_db['Date'].iloc[2:-2]
-
-    # 確保 plot_dates 與 y_test_pred 的長度一致
-    if len(plot_dates) != len(y_test_pred):
-        raise ValueError("The length of plot_dates and y_test_pred must be the same.")
     # 繪圖
     fig, ax = plt.subplots(figsize=(10.5, 6))
     ax.plot(data_from_db['Date'], data_from_db['Close'], label='Historical Close Price', color='Blue')
-    
+
     # 使用 model 預測的值
     # 繪製測試集預測結果
-    ax.plot(plot_dates, y_test_pred, label='Linear Regression', color='orange')
+    ax.plot(test_dates, y_test_pred, label='Linear Regression', color='orange')
 
     #plt.scatter(test_dates, y_test_pred, label='Linear Regression', color='orange')
     
