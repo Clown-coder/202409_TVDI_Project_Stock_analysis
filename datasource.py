@@ -19,6 +19,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import joblib
 
 
+
 def date(close):
     conn=sqlite3.connect("check_data.db")
     with conn:
@@ -239,7 +240,7 @@ def rsi():
     conn = sqlite3.connect('check_data.db')
 
     # 從資料庫讀取資料
-    sql = '''SELECT * FROM NewTable'''
+    sql = '''SELECT * FROM NewTable ORDER BY DATE ASC'''
     data_from_db = pd.read_sql(sql, conn)
 
     # 關閉資料庫連接
@@ -319,7 +320,7 @@ def sma():
     conn = sqlite3.connect('check_data.db')
 
     # 從資料庫讀取資料
-    sql = '''SELECT * FROM NewTable'''
+    sql = '''SELECT * FROM NewTable ORDER BY DATE ASC'''
     data_from_db = pd.read_sql(sql, conn)
 
     # 關閉資料庫連接
@@ -391,7 +392,7 @@ def macd():
     conn = sqlite3.connect('check_data.db')
 
     # 從資料庫讀取資料
-    sql = '''SELECT * FROM NewTable'''
+    sql = '''SELECT * FROM NewTable ORDER BY DATE ASC'''
     data_from_db = pd.read_sql(sql, conn)
 
     # 關閉資料庫連接
@@ -460,7 +461,7 @@ def get_future_day1_price(model,data_from_db,future_days=30):
     conn = sqlite3.connect('check_data.db')
 
     # 從資料庫讀取資料
-    sql = '''SELECT * FROM NewTable'''
+    sql = '''SELECT * FROM NewTable ORDER BY DATE ASC'''
     data_from_db = pd.read_sql(sql, conn)
 
     # 關閉資料庫連接
@@ -474,11 +475,8 @@ def get_future_day1_price(model,data_from_db,future_days=30):
     y = data_from_db['Close'].iloc[2:-2]  # 目標變量，與 X 範圍一致
     
     
-    X_train, X_test, y_train, y_test = train_test_split(X, y, train_size = 0.6, random_state = 0,shuffle=False)
-    model = LinearRegression(fit_intercept=True,copy_X=True,n_jobs=1)
-    model.fit(X_train, y_train)
+    model = joblib.load('linear_regression_model.pkl')
     
-    X_test = pd.DataFrame(X_test, columns=X.columns)
     
     # 進行預測
     # 未來30天
@@ -512,13 +510,161 @@ def get_future_day1_price(model,data_from_db,future_days=30):
     
 def get_model_and_data():
     # 這裡可以初始化 model 和 data_from_db，然後返回
-    model = LinearRegression(fit_intercept=True, copy_X=True, n_jobs=1)
+    model = joblib.load('linear_regression_model.pkl')
     # 連接到 SQLite 資料庫
     conn = sqlite3.connect('check_data.db')
-    sql = '''SELECT * FROM NewTable'''
+    sql = '''SELECT * FROM NewTable ORDER BY DATE ASC'''
     data_from_db = pd.read_sql(sql, conn)
     conn.close()
     
     return model, data_from_db['Close']
    
-   
+
+
+def bias_rate():
+    # 連接到 SQLite 資料庫
+    conn = sqlite3.connect('check_data.db')
+
+    # 從資料庫讀取資料
+    sql = '''SELECT * FROM NewTable ORDER BY DATE ASC'''
+    data_from_db = pd.read_sql(sql, conn)
+
+    # 關閉資料庫連接
+    conn.close()
+
+    # 加載線性回歸模型
+    model = joblib.load('linear_regression_model.pkl')
+
+    # 處理日期和天數
+    data_from_db['Date'] = pd.to_datetime(data_from_db['Date'])
+    data_from_db['Days'] = (data_from_db['Date'] - data_from_db['Date'].min()).dt.days
+
+    # 準備數據
+    #X = data_from_db.iloc[2:-2].select_dtypes(include=[np.number]).drop(columns=['Close', 'MA_5'])
+    # 確保 MA_5 欄位存在再進行刪除
+    if 'MA_5' in data_from_db.columns:
+        X = data_from_db.iloc[2:-2].select_dtypes(include=[np.number]).drop(columns=['Close', 'MA_5'])
+    else:
+        X = data_from_db.iloc[2:-2].select_dtypes(include=[np.number]).drop(columns=['Close'])
+
+    y_actual = data_from_db['Close'].iloc[2:-2]
+
+    # 使用模型預測
+    y_pred = model.predict(X)
+
+    window = 5
+    # 新增 5 日移動平均值
+    data_from_db['MA_5'] = data_from_db['Close'].rolling(window=window).mean()
+
+    # 計算乖離率
+    # 確保乖離率在足夠資料時才計算
+    data_from_db['BiasRate'] = ((data_from_db['Close'] - data_from_db['MA_5']) / data_from_db['MA_5']) * 100
+
+    # 過濾掉有空值的行
+    filtered_data = data_from_db.dropna(subset=['MA_5', 'BiasRate'])
+
+    # 預測未來一筆數據
+    future_x = pd.DataFrame(
+        np.arange(data_from_db['Days'].max() + 1, data_from_db['Days'].max() + 2),
+        columns=['Days']
+    )
+    future_x = future_x.reindex(columns=X.columns, fill_value=0)  # 確保特徵一致
+    future_pred = model.predict(future_x)
+
+    # 添加未來日期和預測值
+    future_date = data_from_db['Date'].max() + pd.Timedelta(days=1)
+    future_data = pd.DataFrame({
+    'Date': [future_date],
+    'Close': [float(future_pred[0])],  # 確保是數字
+    'BiasRate': [float('nan')]        # 使用 NaN 代替 None
+})
+
+# 合併未來數據
+    filtered_data = pd.concat([filtered_data, future_data], ignore_index=True)
+    # 繪製圖表
+    fig, ax1 = plt.subplots(figsize=(10.5, 6))
+
+    # 左軸：收盤價
+    ax1.plot(data_from_db['Date'], data_from_db['Close'], label='Close Price', color='blue')
+    ax1.set_ylabel('Price')
+
+    # 右軸：乖離率
+    ax2 = ax1.twinx()
+    ax2.plot(data_from_db['Date'], data_from_db['BiasRate'], label='Bias Rate', color='green', linestyle='--')
+    ax2.set_ylabel('Bias Rate (%)')
+
+    # 標題與圖例
+    plt.title('Close Price and Bias Rate with Moving Average')
+    ax1.legend(loc='upper left')
+    ax2.legend(loc='upper right')
+    plt.tight_layout()
+
+    return fig
+
+
+
+def get_future_bias_rate(model_path, db_path, future_days=1, window=5):
+    """
+    預測未來價格並計算未來的乖離率。
+
+    參數:
+    - model_path: 線性回歸模型的檔案路徑
+    - db_path: SQLite 資料庫的檔案路徑
+    - future_days: 預測的未來天數，默認為 1 天
+    - window: 移動平均的窗口大小，默認為 5 日
+
+    返回:
+    - 未來第 1 天的預測價格
+    - 未來第 1 天的乖離率
+    """
+
+    # 連接到 SQLite 資料庫
+    conn = sqlite3.connect(db_path)
+
+    # 從資料庫讀取資料
+    sql = '''SELECT * FROM NewTable ORDER BY DATE ASC'''
+    data_from_db = pd.read_sql(sql, conn)
+
+    # 關閉資料庫連接
+    conn.close()
+
+    # 處理日期和天數
+    data_from_db['Date'] = pd.to_datetime(data_from_db['Date'])
+    data_from_db['Days'] = (data_from_db['Date'] - data_from_db['Date'].min()).dt.days
+
+    # 加載線性回歸模型
+    model = joblib.load(model_path)
+
+    # 計算移動平均
+    #data_from_db['MA_5'] = data_from_db['Close'].rolling(window=window).mean()
+
+    # 準備未來預測的特徵：不包括 MA_5，因為 MA_5 可能未在模型中訓練過
+    feature_columns = [col for col in data_from_db.select_dtypes(include=[np.number]).columns if col != 'Close']
+    # 預測未來價格
+    future_x = pd.DataFrame(
+        np.arange(data_from_db['Days'].max() + 1, data_from_db['Days'].max() + future_days + 1),
+        columns=['Days']
+    )
+
+    # 填充其他特徵，確保與模型特徵一致
+    for col in feature_columns:
+        if col not in ['Close', 'Days']:
+            diff_mean = data_from_db[col].diff().mean()
+            future_x[col] = data_from_db[col].iloc[-1] + (diff_mean if not pd.isna(diff_mean) else 0)
+
+    # 確保欄位順序與模型一致
+    future_x = future_x[feature_columns]
+
+    # 使用模型進行預測
+    future_predicted_price = model.predict(future_x)
+
+    # 計算未來乖離率
+    future_ma = data_from_db['Close'].iloc[-window:].mean()  # 取最近窗口內的移動平均值
+    if not pd.isna(future_ma):
+        future_bias_rate = ((future_predicted_price[0] - future_ma) / future_ma) * 100
+    else:
+        future_bias_rate = float('nan')  # 若無足夠資料，設定為 NaN
+
+    return future_predicted_price[0], future_bias_rate
+
+

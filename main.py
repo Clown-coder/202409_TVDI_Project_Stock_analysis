@@ -11,6 +11,7 @@ import datasource
 import mplfinance
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import sys
+from tkinter import messagebox
 import sqlite3
 
 class Window(ThemedTk):
@@ -18,7 +19,7 @@ class Window(ThemedTk):
         super().__init__(*args,**kwargs)
         self.title("Stock Analysis")
         self.geometry('1800x600')
-        
+        self.linear_regression_executed = False
         #==========STYLE===========
         style = ttk.Style(self)
         style.configure('TopFrame.TLabel',font=('Helvetica',20))
@@ -52,14 +53,16 @@ class Window(ThemedTk):
                 #==TOPFRAME END=====
            #=== 分析方法===
         self.analysisFrame = ttk.Frame(self.leftFrame)
-        self.linear_btn = ttk.Button(self.analysisFrame,text='線性回歸分析',style='All.TButton',command=self.plot_regression)
-        self.linear_btn.grid(row=0,column=0,padx=5,pady=5)
-        self.linear_btn = ttk.Button(self.analysisFrame,text='RSI',style='All.TButton',command=self.plot_rsi)
-        self.linear_btn.grid(row=0,column=1,padx=5,pady=5)
-        self.linear_btn = ttk.Button(self.analysisFrame,text='MACD',style='All.TButton',command=self.plot_macd)
-        self.linear_btn.grid(row=1,column=0,padx=5,pady=5)
-        self.linear_btn = ttk.Button(self.analysisFrame,text='MA',style='All.TButton',command=self.plot_sma)
-        self.linear_btn.grid(row=1,column=1,padx=5,pady=5)
+        self.linear_btn1 = ttk.Button(self.analysisFrame,text='線性回歸分析',style='All.TButton',command=self.plot_regression)
+        self.linear_btn1.grid(row=0,column=0,padx=5,pady=5)
+        self.linear_btn2 = ttk.Button(self.analysisFrame,text='RSI',style='All.TButton',command=self.plot_rsi)
+        self.linear_btn2.grid(row=0,column=1,padx=5,pady=5)
+        self.linear_btn3 = ttk.Button(self.analysisFrame,text='MACD',style='All.TButton',command=self.plot_macd)
+        self.linear_btn3.grid(row=1,column=0,padx=5,pady=5)
+        self.linear_btn4 = ttk.Button(self.analysisFrame,text='MA',style='All.TButton',command=self.plot_sma)
+        self.linear_btn4.grid(row=1,column=1,padx=5,pady=5)
+        self.linear_btn5 = ttk.Button(self.analysisFrame,text='bias',style='All.TButton',command=self.cal_bias_rate)
+        self.linear_btn5.grid(row=1,column=2,padx=5,pady=5)
 
         self.analysisFrame.pack(fill='x',pady=10)
 
@@ -70,7 +73,13 @@ class Window(ThemedTk):
         ttk.Label(self.resultFrame,text='明日股價',borderwidth=2,relief='groove',style='TopFrame.TLabel').grid(row=0,column=0,padx=5,pady=5)
         self.result_entry = ttk.Entry(self.resultFrame)
         self.result_entry.grid(row=0,column=1,padx=15,pady=5)
+        ttk.Label(self.resultFrame,text='預測乖離率',borderwidth=2,relief='groove',style='TopFrame.TLabel').grid(row=1,column=0,padx=5,pady=5)
+        self.result_entry2 = ttk.Entry(self.resultFrame)
+        self.result_entry2.grid(row=1,column=1,padx=15,pady=5)
+
         self.resultFrame.pack(fill='x', pady=10)
+        
+        
                 #=== 預測分析 end===
         
             #=== 資料庫 frame===
@@ -132,6 +141,9 @@ class Window(ThemedTk):
         self.result_entry.delete(0,tk.END)
         self.result_entry.insert(0,f'{firstdat_predict:.2f}')
 
+        # 設定 linear_regression 已執行
+        self.linear_regression_executed = True
+
         for widget in self.rightFrame.winfo_children():
             widget.destroy()
         
@@ -172,12 +184,41 @@ class Window(ThemedTk):
         canvas.draw()
         canvas.get_tk_widget().pack(fill='both',expand=True)
 
+    def cal_bias_rate(self):
+        if not self.linear_regression_executed:
+            messagebox.showwarning("Warning",'Please execute linear regression first!')
+            return
+        
+        try:
+            fig=datasource.bias_rate()
+            future_price, future_bias = datasource.get_future_bias_rate(
+                model_path='linear_regression_model.pkl',
+                db_path='check_data.db',
+                future_days=1,
+                window=5
+            )
+
+            self.result_entry.delete(0, tk.END)
+            self.result_entry.insert(0, f'{future_price:.2f}')
+            self.result_entry2.insert(0,f'{future_bias:.2f}%')
+
+            fig = datasource.bias_rate()
+            for widget in self.rightFrame.winfo_children():
+                widget.destroy()
+
+            canvas = FigureCanvasTkAgg(fig, master=self.rightFrame)
+            canvas.draw()
+            canvas.get_tk_widget().pack(fill='both', expand=True)
+
+        except Exception as e:
+            messagebox.showerror("錯誤", f"計算乖離率時出現問題：{e}")
+
     def load_data(self):
          # 連接到 SQLite 資料庫
         conn = sqlite3.connect('check_data.db')
 
         # 從資料庫讀取資料
-        sql = sql = '''SELECT Date, Open, High, Low, Volume, Close FROM NewTable'''
+        sql = sql = '''SELECT Date, Open, High, Low, Volume, Close FROM NewTable ORDER BY DATE ASC'''
         data_from_db = pd.read_sql(sql, conn)
 
         # 關閉資料庫連接
