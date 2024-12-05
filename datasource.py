@@ -552,7 +552,7 @@ def bias_rate():
     # 使用模型預測
     y_pred = model.predict(X)
 
-    window = 5
+    window = 6
     # 新增 5 日移動平均值
     data_from_db['MA_5'] = data_from_db['Close'].rolling(window=window).mean()
 
