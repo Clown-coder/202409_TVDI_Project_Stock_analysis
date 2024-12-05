@@ -139,6 +139,7 @@ class Window(ThemedTk):
         model,data_from_db = datasource.get_model_and_data()
         firstdat_predict = datasource.get_future_day1_price(model,data_from_db)
         self.result_entry.delete(0,tk.END)
+        self.result_entry2.delete(0, tk.END)
         self.result_entry.insert(0,f'{firstdat_predict:.2f}')
 
         # 設定 linear_regression 已執行
@@ -153,6 +154,7 @@ class Window(ThemedTk):
 
     def plot_rsi(self):
         self.result_entry.delete(0,tk.END)
+        self.result_entry2.delete(0, tk.END)
         fig = datasource.rsi()
 
         for widget in self.rightFrame.winfo_children():
@@ -164,6 +166,7 @@ class Window(ThemedTk):
     
     def plot_sma(self):
         self.result_entry.delete(0,tk.END)
+        self.result_entry2.delete(0, tk.END)
         fig = datasource.sma()
 
         for widget in self.rightFrame.winfo_children():
@@ -175,6 +178,7 @@ class Window(ThemedTk):
 
     def plot_macd(self):
         self.result_entry.delete(0,tk.END)
+        self.result_entry2.delete(0, tk.END)
         fig = datasource.macd()
 
         for widget in self.rightFrame.winfo_children():
@@ -199,6 +203,7 @@ class Window(ThemedTk):
             )
 
             self.result_entry.delete(0, tk.END)
+            self.result_entry2.delete(0, tk.END)
             self.result_entry.insert(0, f'{future_price:.2f}')
             self.result_entry2.insert(0,f'{future_bias:.2f}%')
 
