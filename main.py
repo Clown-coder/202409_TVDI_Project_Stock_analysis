@@ -48,7 +48,7 @@ class Window(ThemedTk):
         ttk.Label(self.topFrame,text='台積電股票預測',style='TopFrame.TLabel',borderwidth=2,relief='groove').pack(pady=10)
         self.icon_button = outsources.ImageButton(self.topFrame,command=self.update_treeview)
         self.icon_button.pack(pady=7,side='right',padx=5)
-        ttk.Label(self.topFrame,text=' 起始數據: 2020-01-01',style='TopFrame.TLabel',borderwidth=2,relief='groove').pack(ipadx=5,pady=10)
+        ttk.Label(self.topFrame,text=' 起始數據: 2015-01-01',style='TopFrame.TLabel',borderwidth=2,relief='groove').pack(ipadx=5,pady=10)
         self.topFrame.pack(fill='x')
                 #==TOPFRAME END=====
            #=== 分析方法===
