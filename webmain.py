@@ -25,7 +25,7 @@ app.layout = html.Div(
         dcc.RadioItems(['Close',"Open","High","Low","Volume"],value='Close',inline=True,id='radio_item'),
         dash_table.DataTable(
                             data = df.to_dict('records'),
-                            page_size = 20,
+                            page_size = 10,
                             id="datatable",
                             columns=[
                                     {"name": "Date", "id": "Date_str"},  # 顯示格式化後的 Date_str 欄位
@@ -50,7 +50,7 @@ app.layout = html.Div(
     Input('radio_item','value')
 )
 def change_graph(radio_value):
-    
+    sorted_df = df.sort_values('Date')
     if radio_value =='Close':
         title = f'{radio_value}'
     elif radio_value =='Open':
@@ -61,7 +61,7 @@ def change_graph(radio_value):
         title = f'{radio_value}'
     elif radio_value =='Volume':
         title = f'{radio_value}'
-    return px.line(data_frame=df ,x="Date_str",y=radio_value,title=title)
+    return px.line(data_frame=sorted_df ,x="Date",y=radio_value,title=title, connectgaps=False)
 
 
 
@@ -71,7 +71,7 @@ def change_graph(radio_value):
     Input('radio_item','value')
 )
 def update_table(radio_value):
-    columns=[{'id':"Date_str",'name':"Date_str"}
+    columns=[{'id':"Date_str",'name':"Date"}
              ]
     if radio_value =='Close':
         columns.append ({'id':'Close','name':'Close'})
