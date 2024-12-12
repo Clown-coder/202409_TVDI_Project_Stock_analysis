@@ -18,6 +18,38 @@ df['Days'] = (df['Date']-df['Date'].min()).dt.days
 df['Date_str'] = df['Date'].dt.strftime('%Y-%m-%d')
 
 app= Dash(__name__)
+"""
+#radio資料
+# radio_data=[['Close',"收盤價"],["Open","開盤價"],["High","最高價"],["Low","最低價"],['Volume',"成交量"]]
+
+
+
+# rows = [
+#     dmc.TableTr(
+#         [
+#             dmc.TableTd(df['Date_str']),
+#             dmc.TableTd(df["Close"])
+#         ]
+#     )
+#     for df in radio_data
+# ]
+
+
+
+# head = dmc.TableThead(
+#     dmc.TableTr(
+#         [
+#             dmc.TableTh("日期"),
+#             dmc.TableTh("收盤價")
+#         ]
+#     )
+# )
+
+# body = dmc.TableTbody(rows)
+# caption = dmc.TableCaption("Taiwan NO.1")
+"""
+
+
 
 app.layout = html.Div(
     [
@@ -43,7 +75,47 @@ app.layout = html.Div(
     ]
 )
 
-
+'''
+# app.layout = dmc.MantineProvider(
+#     [
+#         dmc.Container(
+#             dmc.Title(f'台積電股票分析',order=2),
+#             fluid=True,
+#             ta="center",
+#             p=30
+#         )
+#     ,
+#         dmc.Flex(
+#             [
+#                 dmc.RadioGroup(
+#                     children = dmc.Group([dmc.Radio(l, value=k) for k,l in radio_data],my=10),
+#                     id = "radio_item",
+#                     value = "Close",
+#                     label= "請選擇想了解的資料",
+#                     size='md',
+#                     mb=10
+#                 )
+#             ,
+#                 dmc.ScrollArea(
+#                     dmc.Table(
+#                         [head,body,caption],
+#                         w="100%"
+#                     ),
+#                     h=300,
+#                     w="50%"
+#                 )
+#             ],
+#             direction={"base":"column","sm":"row"},
+#             gap={"base":"sm","sm":"lg"},
+#             justify={"base":"center"}
+#         )
+#     ,
+#         dmc.Container(
+#             dcc.Graph(id="graph-content")
+#         )
+#     ]
+# )
+'''
 #圖表事件
 @callback(
     Output('graph-content','figure'),
@@ -61,7 +133,7 @@ def change_graph(radio_value):
         title = f'{radio_value}'
     elif radio_value =='Volume':
         title = f'{radio_value}'
-    return px.line(data_frame=sorted_df ,x="Date",y=radio_value,title=title, connectgaps=False)
+    return px.line(data_frame=sorted_df ,x="Date",y=radio_value,title=title)
 
 
 
@@ -84,7 +156,6 @@ def update_table(radio_value):
     elif radio_value =='Volume':
         columns.append ({'id':'Volume','name':'Volume'})
     return (df.to_dict('records')),columns
-
 
 
 
