@@ -9,3 +9,5 @@ dash
 pandas
 plotly
 dash-mantine-components
+dash-mantine-components
+dash-iconify
