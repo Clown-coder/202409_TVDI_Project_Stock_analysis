@@ -16,6 +16,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error, r2_score
 from matplotlib import rcParams
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import  plotly.graph_objects as go
 import joblib
 
 
