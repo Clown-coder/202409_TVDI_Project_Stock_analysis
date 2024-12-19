@@ -4,6 +4,7 @@ import plotly.express as px
 import dash_mantine_components as dmc
 from dash_iconify import DashIconify
 import sqlite3
+import plotly.graph_objs as go
 
 _dash_renderer._set_react_version("18.2.0")
 
@@ -172,9 +173,19 @@ def update_content(radio_value,selected_method):
 
     # 主圖（分析結果）
     if selected_method == "macd":
-        fig1 = px.line(data, x="Date", y=["MACD", "Signal_Line"], title=f"MACD")
-    elif y_col and y_col in data.columns:
-        fig1 = px.line(data, x="Date", y=y_col, title=f"{selected_method.upper()}")
+        fig1 = px.line(data, x="Date", y=["MACD", "Signal_Line"], title=f"MACD",labels={
+        "variable": "標籤名稱",  # 將 variable 替換為自定義名稱
+         # 替換其他標籤名稱（可選）
+    })
+    elif selected_method == "sma":
+        data = calculate_sma(data)  # 保證 data 還是 DataFrame
+        fig1 = px.line(data, x="Date", y=["SMA_short", "SMA_long"], title="SMA",labels={
+        "variable": "標籤名稱"})
+        
+    elif selected_method == "rsi":
+        data = calculate_rsi(data)  # 保證 data 還是 DataFrame
+        fig1 = px.line(data, x="Date", y=["RSI"], title="RSI",labels={
+        "variable": "標籤名稱"})
     else:
         fig1 = go.Figure()
 
@@ -210,8 +221,10 @@ def calculate_rsi(data):
 
 
 def calculate_sma(data):
-    window = 14
-    data['SMA'] = data['Close'].rolling(window=window).mean()
+    window1 = 20
+    window2 = 90 
+    data['SMA_short'] = data['Close'].rolling(window=window1).mean()
+    data['SMA_long'] = data['Close'].rolling(window=window2).mean()
     return data
 
 
